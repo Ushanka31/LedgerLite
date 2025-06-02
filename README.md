@@ -1,36 +1,185 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://github.com/vercel/next.js/tree/canary/packages/create-next-app).
+# LedgerLite - Cloud-based Accounting SaaS for SMEs
+
+LedgerLite is a modern, offline-first accounting solution designed specifically for Nigerian Small and Medium Enterprises (SMEs). Built with Next.js 15, it provides essential bookkeeping features with a focus on simplicity and reliability.
+
+## Features
+
+### 🔐 Authentication
+- Phone number-based authentication with SMS OTP
+- No passwords required - secure and simple
+- 30-day device memory with manual logout option
+
+### 🏢 Company Management
+- Quick setup wizard for business details
+- Multi-currency support (₦ Nigerian Naira default)
+- Customizable financial year settings
+- Pre-loaded chart of accounts tailored for Nigerian businesses
+
+### 📊 Double-Entry Bookkeeping
+- Full double-entry ledger system
+- Journal entries with debit/credit validation
+- Real-time running balances
+- Offline-first architecture with automatic sync
+
+### 💰 Invoicing
+- Professional invoice generation
+- PDF export and print capabilities
+- Integrated Paystack payment links
+- Automatic payment status tracking via webhooks
+- Customer management
+
+### 📸 Expense Tracking
+- Quick expense capture with photo receipts
+- VAT handling (inclusive/exclusive)
+- Multiple payment source tracking
+- Vendor management
+
+### 📈 Reports & Analytics
+- Interactive dashboard with key metrics
+- Profit & Loss statements
+- Trial Balance
+- General Ledger
+- CSV export for all reports
+
+### 👥 User Management
+- Owner role with full access
+- Staff role with limited permissions
+- Granular permission controls
+
+### 🔧 Additional Features
+- Daily automated backups
+- Bulk data export (CSV/PDF)
+- Offline mode with IndexedDB
+- Mobile-responsive design
+
+## Tech Stack
+
+- **Frontend**: Next.js 15 (App Router), React 19, Tailwind CSS
+- **Database**: PostgreSQL with Drizzle ORM
+- **Offline Storage**: Dexie.js (IndexedDB)
+- **Authentication**: Custom phone-based auth with OTP
+- **Payment**: Paystack integration
+- **PDF Generation**: jsPDF
+- **UI Components**: Radix UI primitives
+- **Charts**: Recharts
+- **Deployment**: Vercel/Railway
 
 ## Getting Started
 
-First, run the development server:
+### Prerequisites
 
+- Node.js 18+ 
+- PostgreSQL database
+- Paystack account (for payment processing)
+- SMS gateway account (Twilio, Termii, etc.)
+
+### Installation
+
+1. Clone the repository:
 ```bash
-npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
+git clone https://github.com/yourusername/ledgerlite.git
+cd ledgerlite
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+2. Install dependencies:
+```bash
+npm install
+```
 
-You can start editing the page by modifying `app/page.js`. The page auto-updates as you edit the file.
+3. Set up environment variables:
+Create a `.env.local` file in the root directory:
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+```env
+# Database
+DATABASE_URL=postgresql://user:password@localhost:5432/ledgerlite
 
-## Learn More
+# Supabase (optional - for auth)
+NEXT_PUBLIC_SUPABASE_URL=your-supabase-url
+NEXT_PUBLIC_SUPABASE_ANON_KEY=your-supabase-anon-key
+SUPABASE_SERVICE_ROLE_KEY=your-supabase-service-role-key
 
-To learn more about Next.js, take a look at the following resources:
+# SMS Provider
+SMS_API_KEY=your-sms-api-key
+SMS_API_URL=your-sms-api-url
+SMS_SENDER_ID=LedgerLite
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+# Paystack
+PAYSTACK_SECRET_KEY=your-paystack-secret-key
+NEXT_PUBLIC_PAYSTACK_PUBLIC_KEY=your-paystack-public-key
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+# App
+NEXT_PUBLIC_APP_URL=http://localhost:3000
+JWT_SECRET=your-jwt-secret-key
+```
 
-## Deploy on Vercel
+4. Set up the database:
+```bash
+npm run db:push
+```
 
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
+5. Run the development server:
+```bash
+npm run dev
+```
 
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+Open [http://localhost:3000](http://localhost:3000) to see the application.
+
+## Database Schema
+
+The application uses a comprehensive schema designed for double-entry accounting:
+
+- **Users**: Phone-based authentication and role management
+- **Companies**: Multi-tenant support with company profiles
+- **Accounts**: Chart of accounts with hierarchical structure
+- **Journal Entries**: Core double-entry transactions
+- **Invoices**: Customer invoicing with payment tracking
+- **Expenses**: Expense tracking with VAT handling
+- **Offline Sync**: Queue for offline-first functionality
+
+## API Routes
+
+- `/api/auth/send-otp` - Send OTP to phone number
+- `/api/auth/verify-otp` - Verify OTP and login
+- `/api/auth/logout` - Logout user
+- `/api/sync` - Sync offline data
+- `/api/webhooks/paystack` - Paystack payment webhooks
+- `/api/reports/*` - Various report endpoints
+
+## Deployment
+
+### Vercel Deployment
+
+1. Push your code to GitHub
+2. Connect your GitHub repo to Vercel
+3. Add environment variables in Vercel dashboard
+4. Deploy
+
+### Database Setup (Railway/Supabase)
+
+1. Create a PostgreSQL database
+2. Run migrations:
+```bash
+npm run db:migrate
+```
+
+## Contributing
+
+We welcome contributions! Please see our [Contributing Guide](CONTRIBUTING.md) for details.
+
+## License
+
+This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
+
+## Support
+
+For support, email support@ledgerlite.com or join our Slack community.
+
+## Roadmap
+
+- [ ] Multi-branch support
+- [ ] Advanced inventory management
+- [ ] Payroll module
+- [ ] Tax filing integration
+- [ ] Mobile apps (iOS/Android)
+- [ ] API for third-party integrations
+- [ ] Advanced analytics and forecasting
