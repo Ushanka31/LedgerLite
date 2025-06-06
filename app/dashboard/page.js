@@ -13,6 +13,10 @@ import AddExpenseModal from '@/app/components/expenses/AddExpenseModal';
 import AddInvoiceModal from '@/app/components/invoices/AddInvoiceModal';
 import ProfileSettingsModal from '@/app/components/modals/ProfileSettingsModal';
 import CompanySettingsModal from '@/app/components/modals/CompanySettingsModal';
+import AddPersonalIncomeModal from '@/app/components/personal/AddPersonalIncomeModal';
+import AddPersonalExpenseModal from '@/app/components/personal/AddPersonalExpenseModal';
+import PersonalBudgetModal from '@/app/components/personal/PersonalBudgetModal';
+import PersonalDashboard from '@/app/components/personal/PersonalDashboard';
 import { Line } from 'react-chartjs-2';
 import {
   Chart as ChartJS,
@@ -49,6 +53,9 @@ export default function DashboardPage() {
   const [showAddInvoiceModal, setShowAddInvoiceModal] = useState(false);
   const [showProfileModal, setShowProfileModal] = useState(false);
   const [showCompanyModal, setShowCompanyModal] = useState(false);
+  const [showAddPersonalIncomeModal, setShowAddPersonalIncomeModal] = useState(false);
+  const [showAddPersonalExpenseModal, setShowAddPersonalExpenseModal] = useState(false);
+  const [showPersonalBudgetModal, setShowPersonalBudgetModal] = useState(false);
   const [metrics, setMetrics] = useState([]);
   const [transactions, setTransactions] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -57,31 +64,42 @@ export default function DashboardPage() {
   const [totalInvoices, setTotalInvoices] = useState(0);
   const [outstandingInvoicesCount, setOutstandingInvoicesCount] = useState(0);
   const [lineChartData, setLineChartData] = useState({ labels: [], datasets: [] });
+  const [currentContext, setCurrentContext] = useState(null);
 
   const router = useRouter();
 
-  // Fetch user data
+  // Fetch user data and context
   useEffect(() => {
-    const fetchUser = async () => {
+    const fetchUserAndContext = async () => {
       try {
-        const response = await fetch('/api/user');
-        const result = await response.json();
+        // Fetch user
+        const userResponse = await fetch('/api/user');
+        const userResult = await userResponse.json();
         
-        if (result.success) {
-          setUser(result.user);
+        if (userResult.success) {
+          setUser(userResult.user);
         } else {
-          console.error('Failed to fetch user:', result.error);
+          console.error('Failed to fetch user:', userResult.error);
           // If user fetch fails, they might not be authenticated
-          if (response.status === 401) {
+          if (userResponse.status === 401) {
             router.push('/auth/login');
+            return;
           }
         }
+
+        // Fetch context
+        const contextResponse = await fetch('/api/context');
+        const contextResult = await contextResponse.json();
+        
+        if (contextResult.success) {
+          setCurrentContext(contextResult.current);
+        }
       } catch (error) {
-        console.error('Error fetching user:', error);
+        console.error('Error fetching user/context:', error);
       }
     };
 
-    fetchUser();
+    fetchUserAndContext();
   }, [router]);
 
   // Fetch transactions and calculate metrics
@@ -388,27 +406,46 @@ export default function DashboardPage() {
 
   const handleQuickAction = (actionId) => {
     // Handle quick action clicks by opening appropriate modals
+    const isPersonal = currentContext?.type === 'personal';
+    
     switch (actionId) {
       case 'invoice':
-        setShowAddInvoiceModal(true);
+        if (!isPersonal) {
+          setShowAddInvoiceModal(true);
+        }
         break;
       case 'revenue':
-        setShowAddSaleModal(true);
+        if (isPersonal) {
+          setShowAddPersonalIncomeModal(true);
+        } else {
+          setShowAddSaleModal(true);
+        }
         break;
       case 'expense':
-        setShowAddExpenseModal(true);
+        if (isPersonal) {
+          setShowAddPersonalExpenseModal(true);
+        } else {
+          setShowAddExpenseModal(true);
+        }
         break;
       case 'customer':
-        // TODO: Implement customer modal or navigate to customers page
-        console.log('Add Customer clicked - feature coming soon!');
-        // For now, we can show an alert or navigate to a customers page
-        alert('Add Customer feature coming soon!');
+        if (!isPersonal) {
+          // TODO: Implement customer modal or navigate to customers page
+          console.log('Add Customer clicked - feature coming soon!');
+          // For now, we can show an alert or navigate to a customers page
+          alert('Add Customer feature coming soon!');
+        }
         break;
       case 'reports':
         // TODO: Implement reports page or modal
         console.log('View Reports clicked - feature coming soon!');
         // For now, we can show an alert or navigate to a reports page  
         alert('Reports feature coming soon!');
+        break;
+      case 'budget':
+        if (isPersonal) {
+          setShowPersonalBudgetModal(true);
+        }
         break;
       default:
         console.log('Unknown action:', actionId);
@@ -466,6 +503,27 @@ export default function DashboardPage() {
     console.log('Invoice created successfully:', invoice);
   };
 
+  const handlePersonalIncomeSuccess = (transaction) => {
+    // Refresh data after successful personal income
+    fetchTransactions();
+    
+    // TODO: Show success notification
+    console.log('Personal income added successfully:', transaction);
+  };
+
+  const handlePersonalExpenseSuccess = (transaction) => {
+    // Refresh data after successful personal expense
+    fetchTransactions();
+    
+    // TODO: Show success notification
+    console.log('Personal expense added successfully:', transaction);
+  };
+
+  const handleBudgetSuccess = (budget) => {
+    // TODO: Show success notification
+    console.log('Budget saved successfully:', budget);
+  };
+
   const handleUserUpdate = (updatedUser) => {
     // Update user state with new data
     setUser(updatedUser);
@@ -478,6 +536,15 @@ export default function DashboardPage() {
 
   const handleOpenCompanyModal = () => {
     setShowCompanyModal(true);
+  };
+
+  const handleContextChange = (newContext) => {
+    setCurrentContext(newContext);
+    // Refetch data for new context
+    fetchTransactions();
+    if (newContext.type === 'business') {
+      fetchOutstandingInvoices();
+    }
   };
 
   // Transform transactions into activity format
@@ -921,6 +988,8 @@ export default function DashboardPage() {
         onUserUpdate={handleUserUpdate}
         onOpenProfileModal={handleOpenProfileModal}
         onOpenCompanyModal={handleOpenCompanyModal}
+        currentContext={currentContext}
+        onContextChange={handleContextChange}
       />
 
       {/* Main Content */}
@@ -929,9 +998,13 @@ export default function DashboardPage() {
           {/* Header with Date Range Selector */}
           <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between mb-8 gap-4">
             <div>
-              <h1 className="text-3xl font-bold text-dark mb-2">Dashboard</h1>
+              <h1 className="text-3xl font-bold text-dark mb-2">
+                {currentContext?.type === 'personal' ? 'Personal Finance' : 'Dashboard'}
+              </h1>
               <p className="text-medium">
-                Welcome back! Here's what's happening with your business.
+                {currentContext?.type === 'personal' 
+                  ? "Track your personal income, expenses, and savings."
+                  : "Welcome back! Here's what's happening with your business."}
               </p>
               {/* Period and transaction count indicator */}
               <div className="mt-2 flex items-center gap-2 text-sm text-slate-600">
@@ -961,163 +1034,177 @@ export default function DashboardPage() {
             />
           </div>
 
-          {/* Metrics Grid - 2x2 on mobile, 1x4 on desktop */}
-          <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 lg:gap-6 mb-8">
-            {metrics.map((metric, index) => (
-              <MetricCard
-                key={index}
-                title={metric.title}
-                value={metric.value}
-                icon={metric.icon}
-                color={metric.color}
-                sparklineData={metric.sparklineData}
-                cta={metric.cta}
-                trend={metric.trend}
-                onCtaClick={metric.onCtaClick}
-                onClick={() => handleMetricClick(metric)}
-                isClickable={metric.isClickable}
-              />
-            ))}
-          </div>
-
-          {/* Main Content Grid */}
-          <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-8">
-            {/* Left Column - Quick Actions */}
-            <div className="lg:col-span-1 flex">
-              <div className="glass-card p-6 w-full flex flex-col">
-                <QuickActions onActionClick={handleQuickAction} />
+          {/* Show Personal Dashboard for personal context */}
+          {currentContext?.type === 'personal' ? (
+            <PersonalDashboard 
+              transactions={transactions}
+              dateRange={selectedDateRange}
+              onTransactionAdded={fetchTransactions}
+            />
+          ) : (
+            <>
+              {/* Metrics Grid - 2x2 on mobile, 1x4 on desktop */}
+              <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 lg:gap-6 mb-8">
+                {metrics.map((metric, index) => (
+                  <MetricCard
+                    key={index}
+                    title={metric.title}
+                    value={metric.value}
+                    icon={metric.icon}
+                    color={metric.color}
+                    sparklineData={metric.sparklineData}
+                    cta={metric.cta}
+                    trend={metric.trend}
+                    onCtaClick={metric.onCtaClick}
+                    onClick={() => handleMetricClick(metric)}
+                    isClickable={metric.isClickable}
+                  />
+                ))}
               </div>
-            </div>
 
-            {/* Right Column - Recent Activity */}
-            <div className="lg:col-span-2 flex">
-              <div className="glass-card p-6 w-full">
-                <RecentActivity activities={recentActivities} showEmpty={recentActivities.length === 0} />
+              {/* Main Content Grid */}
+              <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-8">
+                {/* Left Column - Quick Actions */}
+                <div className="lg:col-span-1 flex">
+                  <div className="glass-card p-6 w-full flex flex-col">
+                    <QuickActions 
+                      onActionClick={handleQuickAction} 
+                      isPersonalContext={currentContext?.type === 'personal'}
+                    />
+                  </div>
+                </div>
+
+                {/* Right Column - Recent Activity */}
+                <div className="lg:col-span-2 flex">
+                  <div className="glass-card p-6 w-full">
+                    <RecentActivity activities={recentActivities} showEmpty={recentActivities.length === 0} />
+                  </div>
+                </div>
               </div>
-            </div>
-          </div>
 
-          {/* Onboarding Checklist (only show if setup incomplete) */}
-          {setupProgress < 100 && (
-            <div className="mb-8">
-              <OnboardingChecklist 
-                onStepComplete={handleStepComplete}
-              />
-            </div>
-          )}
-
-          {/* Bottom Section - Additional Cards (for future features) */}
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-            {/* Monthly Trends Line Chart */}
-            <div className="glass-card p-6">
-              <h3 className="text-lg font-semibold text-slate-800 mb-4">Monthly Trends (Last 4 Months)</h3>
-              {lineChartData.labels && lineChartData.labels.length > 0 ? (
-                <div className="h-64 md:h-72">
-                  <Line 
-                    data={lineChartData} 
-                    options={{
-                      responsive: true,
-                      maintainAspectRatio: false,
-                      scales: {
-                        y: {
-                          beginAtZero: true,
-                          ticks: {
-                            color: '#475569', // slate-600
-                            callback: function(value) {
-                              if (Math.abs(value) >= 1000000) return '₦' + (value / 1000000) + 'M';
-                              if (Math.abs(value) >= 1000) return '₦' + (value / 1000) + 'K';
-                              return '₦' + value;
-                            }
-                          },
-                          grid: {
-                            color: 'rgba(100, 116, 139, 0.1)', // slate-500 with alpha
-                          },
-                        },
-                        x: {
-                          ticks: {
-                            color: '#475569', // slate-600
-                          },
-                          grid: {
-                            display: false,
-                          },
-                        },
-                      },
-                      plugins: {
-                        legend: {
-                          position: 'top',
-                          labels: {
-                            color: '#334155', // slate-700
-                            boxWidth: 12,
-                            padding: 20,
-                          }
-                        },
-                        tooltip: {
-                          backgroundColor: 'rgba(0,0,0,0.7)',
-                          titleFont: { size: 14 },
-                          bodyFont: { size: 12 },
-                          callbacks: {
-                            label: function(context) {
-                              let label = context.dataset.label || '';
-                              if (label) {
-                                label += ': ';
-                              }
-                              if (context.parsed.y !== null) {
-                                label += new Intl.NumberFormat('en-NG', { style: 'currency', currency: 'NGN', minimumFractionDigits: 0 }).format(context.parsed.y);
-                              }
-                              return label;
-                            }
-                          }
-                        }
-                      }
-                    }}
+              {/* Onboarding Checklist (only show if setup incomplete) */}
+              {setupProgress < 100 && (
+                <div className="mb-8">
+                  <OnboardingChecklist 
+                    onStepComplete={handleStepComplete}
                   />
                 </div>
-              ) : (
-                <div className="h-32 bg-slate-100 rounded-xl flex items-center justify-center">
-                  <p className="text-slate-500 text-sm">No data to display for the last 4 months.</p>
-                </div>
               )}
-            </div>
 
-            {/* Revenue & Invoice Workflow Reminders */}
-            <div className="glass-card p-6">
-              <h3 className="text-lg font-semibold text-slate-800 mb-4">💡 Revenue Tracking</h3>
-              <div className="space-y-3">
-                <div className="flex items-start gap-3 p-3 bg-blue-50 rounded-lg">
-                  <div className="w-2 h-2 bg-blue-500 rounded-full mt-2 flex-shrink-0"></div>
-                  <div>
-                    <p className="text-sm text-slate-700 font-medium">Revenue Recognition</p>
-                    <p className="text-xs text-slate-600 mt-1">
-                      Revenue only counts when invoices are marked as "Paid" on the invoices page
-                    </p>
-                  </div>
+              {/* Bottom Section - Additional Cards (for future features) */}
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                {/* Monthly Trends Line Chart */}
+                <div className="glass-card p-6">
+                  <h3 className="text-lg font-semibold text-slate-800 mb-4">Monthly Trends (Last 4 Months)</h3>
+                  {lineChartData.labels && lineChartData.labels.length > 0 ? (
+                    <div className="h-64 md:h-72">
+                      <Line 
+                        data={lineChartData} 
+                        options={{
+                          responsive: true,
+                          maintainAspectRatio: false,
+                          scales: {
+                            y: {
+                              beginAtZero: true,
+                              ticks: {
+                                color: '#475569', // slate-600
+                                callback: function(value) {
+                                  if (Math.abs(value) >= 1000000) return '₦' + (value / 1000000) + 'M';
+                                  if (Math.abs(value) >= 1000) return '₦' + (value / 1000) + 'K';
+                                  return '₦' + value;
+                                }
+                              },
+                              grid: {
+                                color: 'rgba(100, 116, 139, 0.1)', // slate-500 with alpha
+                              },
+                            },
+                            x: {
+                              ticks: {
+                                color: '#475569', // slate-600
+                              },
+                              grid: {
+                                display: false,
+                              },
+                            },
+                          },
+                          plugins: {
+                            legend: {
+                              position: 'top',
+                              labels: {
+                                color: '#334155', // slate-700
+                                boxWidth: 12,
+                                padding: 20,
+                              }
+                            },
+                            tooltip: {
+                              backgroundColor: 'rgba(0,0,0,0.7)',
+                              titleFont: { size: 14 },
+                              bodyFont: { size: 12 },
+                              callbacks: {
+                                label: function(context) {
+                                  let label = context.dataset.label || '';
+                                  if (label) {
+                                    label += ': ';
+                                  }
+                                  if (context.parsed.y !== null) {
+                                    label += new Intl.NumberFormat('en-NG', { style: 'currency', currency: 'NGN', minimumFractionDigits: 0 }).format(context.parsed.y);
+                                  }
+                                  return label;
+                                }
+                              }
+                            }
+                          }
+                        }}
+                      />
+                    </div>
+                  ) : (
+                    <div className="h-32 bg-slate-100 rounded-xl flex items-center justify-center">
+                      <p className="text-slate-500 text-sm">No data to display for the last 4 months.</p>
+                    </div>
+                  )}
                 </div>
-                <div className="flex items-start gap-3 p-3 bg-yellow-50 rounded-lg">
-                  <div className="w-2 h-2 bg-yellow-500 rounded-full mt-2 flex-shrink-0"></div>
-                  <div>
-                    <p className="text-sm text-slate-700 font-medium">Invoice Workflow</p>
-                    <p className="text-xs text-slate-600 mt-1">
-                      Draft → Send → Mark Paid to complete the revenue cycle
-                    </p>
-                  </div>
-                </div>
-                <div className="flex items-start gap-3 p-3 bg-green-50 rounded-lg">
-                  <div className="w-2 h-2 bg-green-500 rounded-full mt-2 flex-shrink-0"></div>
-                  <div>
-                    <p className="text-sm text-slate-700 font-medium">Outstanding Invoices</p>
-                    <p className="text-xs text-slate-600 mt-1">
-                      <button 
-                        onClick={() => router.push('/invoices')}
-                        className="text-blue-600 hover:text-blue-700 underline"
-                      >
-                        View invoices page
-                      </button> to manage and mark invoices as paid
-                    </p>
+
+                {/* Revenue & Invoice Workflow Reminders */}
+                <div className="glass-card p-6">
+                  <h3 className="text-lg font-semibold text-slate-800 mb-4">💡 Revenue Tracking</h3>
+                  <div className="space-y-3">
+                    <div className="flex items-start gap-3 p-3 bg-blue-50 rounded-lg">
+                      <div className="w-2 h-2 bg-blue-500 rounded-full mt-2 flex-shrink-0"></div>
+                      <div>
+                        <p className="text-sm text-slate-700 font-medium">Revenue Recognition</p>
+                        <p className="text-xs text-slate-600 mt-1">
+                          Revenue only counts when invoices are marked as "Paid" on the invoices page
+                        </p>
+                      </div>
+                    </div>
+                    <div className="flex items-start gap-3 p-3 bg-yellow-50 rounded-lg">
+                      <div className="w-2 h-2 bg-yellow-500 rounded-full mt-2 flex-shrink-0"></div>
+                      <div>
+                        <p className="text-sm text-slate-700 font-medium">Invoice Workflow</p>
+                        <p className="text-xs text-slate-600 mt-1">
+                          Draft → Send → Mark Paid to complete the revenue cycle
+                        </p>
+                      </div>
+                    </div>
+                    <div className="flex items-start gap-3 p-3 bg-green-50 rounded-lg">
+                      <div className="w-2 h-2 bg-green-500 rounded-full mt-2 flex-shrink-0"></div>
+                      <div>
+                        <p className="text-sm text-slate-700 font-medium">Outstanding Invoices</p>
+                        <p className="text-xs text-slate-600 mt-1">
+                          <button 
+                            onClick={() => router.push('/invoices')}
+                            className="text-blue-600 hover:text-blue-700 underline"
+                          >
+                            View invoices page
+                          </button> to manage and mark invoices as paid
+                        </p>
+                      </div>
+                    </div>
                   </div>
                 </div>
               </div>
-            </div>
-          </div>
+            </>
+          )}
         </div>
       </div>
 
@@ -1161,6 +1248,33 @@ export default function DashboardPage() {
         isOpen={showCompanyModal}
         onClose={() => setShowCompanyModal(false)}
       />
+
+      {/* Personal Income Modal */}
+      {showAddPersonalIncomeModal && (
+        <AddPersonalIncomeModal
+          isOpen={showAddPersonalIncomeModal}
+          onClose={() => setShowAddPersonalIncomeModal(false)}
+          onSuccess={handlePersonalIncomeSuccess}
+        />
+      )}
+
+      {/* Personal Expense Modal */}
+      {showAddPersonalExpenseModal && (
+        <AddPersonalExpenseModal
+          isOpen={showAddPersonalExpenseModal}
+          onClose={() => setShowAddPersonalExpenseModal(false)}
+          onSuccess={handlePersonalExpenseSuccess}
+        />
+      )}
+
+      {/* Personal Budget Modal */}
+      {showPersonalBudgetModal && (
+        <PersonalBudgetModal
+          isOpen={showPersonalBudgetModal}
+          onClose={() => setShowPersonalBudgetModal(false)}
+          onSuccess={handleBudgetSuccess}
+        />
+      )}
     </div>
   );
 } 

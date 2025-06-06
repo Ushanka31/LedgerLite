@@ -1,8 +1,8 @@
 'use client';
 
-import { useEffect } from 'react';
+import { useEffect, useState } from 'react';
 
-const QUICK_ACTIONS = [
+const BUSINESS_QUICK_ACTIONS = [
   {
     id: 'invoice',
     label: 'New Invoice',
@@ -65,7 +65,56 @@ const QUICK_ACTIONS = [
   },
 ];
 
-export default function QuickActions({ onActionClick }) {
+const PERSONAL_QUICK_ACTIONS = [
+  {
+    id: 'revenue',
+    label: 'Add Income',
+    shortcut: '⌘I',
+    icon: (
+      <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1" />
+      </svg>
+    ),
+    color: 'text-green-600',
+  },
+  {
+    id: 'expense',
+    label: 'Add Expense',
+    shortcut: '⌘E',
+    icon: (
+      <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M20 12H4M12 4v16" />
+      </svg>
+    ),
+    color: 'text-red-600',
+  },
+  {
+    id: 'budget',
+    label: 'Set Budget',
+    shortcut: '⌘B',
+    icon: (
+      <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 7h6m0 10v-3m-3 3h.01M9 17h.01M9 14h.01M12 14h.01M15 11h.01M12 11h.01M9 11h.01M7 21h10a2 2 0 002-2V5a2 2 0 00-2-2H7a2 2 0 00-2 2v14a2 2 0 002 2z" />
+      </svg>
+    ),
+    color: 'text-blue-600',
+  },
+  {
+    id: 'reports',
+    label: 'View Reports',
+    shortcut: '⌘R',
+    icon: (
+      <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" />
+      </svg>
+    ),
+    color: 'text-purple-600',
+  },
+];
+
+export default function QuickActions({ onActionClick, isPersonalContext = false }) {
+  const QUICK_ACTIONS = isPersonalContext ? PERSONAL_QUICK_ACTIONS : BUSINESS_QUICK_ACTIONS;
+
   // Keyboard shortcuts handler
   useEffect(() => {
     function handleKeyDown(event) {
@@ -78,7 +127,7 @@ export default function QuickActions({ onActionClick }) {
           event.preventDefault();
           if (onActionClick) {
             onActionClick(action.id);
-          } else {
+          } else if (action.href) {
             // Default navigation
             window.location.href = action.href;
           }
@@ -88,12 +137,12 @@ export default function QuickActions({ onActionClick }) {
 
     document.addEventListener('keydown', handleKeyDown);
     return () => document.removeEventListener('keydown', handleKeyDown);
-  }, [onActionClick]);
+  }, [onActionClick, QUICK_ACTIONS]);
 
   const handleActionClick = (action) => {
     if (onActionClick) {
       onActionClick(action.id);
-    } else {
+    } else if (action.href) {
       window.location.href = action.href;
     }
   };

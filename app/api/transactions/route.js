@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server';
 import { requireAuth } from '@/app/lib/auth';
+import { getCurrentContext, getContextCompanyId, isPersonalContext } from '@/app/lib/context';
 import { db } from '@/app/lib/db';
 import { journalEntries, journalLines, accounts, customers } from '@/app/lib/db/schema';
 import { eq, and, desc } from 'drizzle-orm';
@@ -264,8 +265,12 @@ export async function POST(request) {
 export async function GET(request) {
   try {
     const user = await requireAuth();
+    const context = await getCurrentContext();
+    const companyId = getContextCompanyId(context);
     
-    if (!user.companyId) {
+    // In personal context, we use the special personal company ID
+    // In business context, we need a real company ID
+    if (!isPersonalContext(context) && !user.companyId) {
       return NextResponse.json(
         { error: 'Company setup required' },
         { status: 400 }
@@ -297,7 +302,7 @@ export async function GET(request) {
       .from(journalEntries)
       .innerJoin(journalLines, eq(journalLines.journalEntryId, journalEntries.id))
       .innerJoin(accounts, eq(journalLines.accountId, accounts.id))
-      .where(eq(journalEntries.companyId, user.companyId))
+      .where(eq(journalEntries.companyId, companyId))
       .orderBy(desc(journalEntries.createdAt))
       .limit(Math.min(limit * 3, 1500)); // Cap at reasonable number to prevent massive queries
 

@@ -3,6 +3,7 @@
 import { useState, useRef, useEffect } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
+import ContextSwitcher from './ContextSwitcher';
 
 // Progress Ring Component
 function ProgressRing({ progress = 0, size = 32 }) {
@@ -177,7 +178,9 @@ export default function EnhancedNavbar({
   onLogout,
   onUserUpdate,
   onOpenProfileModal,
-  onOpenCompanyModal
+  onOpenCompanyModal,
+  currentContext,
+  onContextChange
 }) {
   const showProgress = setupProgress < 100;
   const router = useRouter();
@@ -227,6 +230,12 @@ export default function EnhancedNavbar({
 
           {/* Right Side */}
           <div className="flex items-center gap-4">
+            {/* Context Switcher */}
+            <ContextSwitcher 
+              currentContext={currentContext}
+              onContextChange={onContextChange}
+            />
+
             {/* Search Bar Placeholder (future enhancement) */}
             <div className="hidden md:block">
               <div className="w-64 glass-input h-8 flex items-center px-3 text-sm text-slate-500">
