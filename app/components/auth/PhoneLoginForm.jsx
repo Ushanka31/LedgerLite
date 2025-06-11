@@ -89,10 +89,8 @@ export default function PhoneLoginForm() {
       setPhoneNumber(data.phoneNumber);
       setIsNewUser(result.isNewUser);
       
-      // Show OTP in development mode
-      if (result.otp) {
-        alert(`Development Mode - Your OTP is: ${result.otp}`);
-      }
+      // If you wish to log OTP in dev, uncomment next line
+      // console.log('OTP:', result.otp);
       
       // If new user, show details form; otherwise go to OTP
       if (result.isNewUser) {
@@ -174,10 +172,7 @@ export default function PhoneLoginForm() {
         throw new Error(result.error || 'Failed to send OTP');
       }
 
-      // Show OTP in development mode
-      if (result.otp) {
-        alert(`Development Mode - Your OTP is: ${result.otp}`);
-      }
+      // console.log('OTP:', result.otp);
 
       startCountdown();
     } catch (err) {

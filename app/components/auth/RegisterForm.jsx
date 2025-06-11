@@ -80,10 +80,7 @@ export default function RegisterForm() {
       setPhoneNumber(data.phoneNumber);
       setUserDetails({ name: data.name, email: data.email });
 
-      // Show OTP in development
-      if (result.otp) {
-        alert(`Development Mode - Your OTP is: ${result.otp}`);
-      }
+      // console.log('OTP:', result.otp);
 
       setStep('otp');
       startCountdown();
@@ -150,9 +147,7 @@ export default function RegisterForm() {
         throw new Error(result.error || 'Failed to send OTP');
       }
 
-      if (result.otp) {
-        alert(`Development Mode - Your OTP is: ${result.otp}`);
-      }
+      // console.log('OTP:', result.otp);
 
       startCountdown();
     } catch (err) {
