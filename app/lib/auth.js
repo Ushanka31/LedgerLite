@@ -2,7 +2,7 @@ import { cookies } from 'next/headers';
 import { db } from './db';
 import { users, authSessions, otpCodes } from './db/schema';
 import { eq, and, gt, lt } from 'drizzle-orm';
-import { generateOTP, validatePhoneNumber } from './utils';
+import { generateOTP, validatePhoneNumber, toInternationalPhone } from './utils';
 import crypto from 'crypto';
 
 const SESSION_COOKIE_NAME = 'ledgerlite_session';
@@ -15,20 +15,23 @@ export function generateDeviceToken() {
 
 // Send SMS via Termii
 export async function sendSMS(phoneNumber, message) {
-  try {
-    // For development/testing - show OTP in console and return success
+  const termiiKey = process.env.TERMII_API_KEY;
+  const termiiSender = process.env.TERMII_SENDER_ID || 'N-Alert';
+
+  // If we don't have a Termii key, simply log for dev convenience
+  if (!termiiKey) {
     console.log('\n' + '='.repeat(60));
-    console.log('📱 SMS MESSAGE (DEVELOPMENT MODE)');
+    console.log('📱 SMS MESSAGE (DEVELOPMENT MODE — no TERMII_API_KEY)');
     console.log('='.repeat(60));
     console.log(`📞 To: ${phoneNumber}`);
     console.log(`💬 Message: ${message}`);
     console.log('='.repeat(60) + '\n');
-    return { success: true };
-    
-    /* 
-    // Send real SMS via Termii - disabled for development
+    return { success: true, dev: true };
+  }
+
+  try {
     const termiiUrl = 'https://api.ng.termii.com/api/sms/send';
-    
+
     const response = await fetch(termiiUrl, {
       method: 'POST',
       headers: {
@@ -36,30 +39,28 @@ export async function sendSMS(phoneNumber, message) {
       },
       body: JSON.stringify({
         to: phoneNumber,
-        from: process.env.TERMII_SENDER_ID || 'N-Alert',
+        from: termiiSender,
         sms: message,
         type: 'plain',
-        api_key: process.env.TERMII_API_KEY,
-        channel: 'dnd', // Using DND channel for better delivery
+        api_key: termiiKey,
+        channel: 'dnd', // Better delivery for Nigerian numbers
       }),
     });
-    
+
     if (!response.ok) {
       const errorData = await response.text();
       console.error('Termii API Error:', errorData);
       throw new Error('Failed to send SMS');
     }
-    
+
     const result = await response.json();
-    console.log('SMS sent successfully:', result);
+    console.log('✅ SMS sent via Termii:', result);
     return { success: true };
-    */
   } catch (error) {
-    console.error('SMS sending error:', error);
-    
-    // For development - fall back to console log if SMS fails
-    console.log(`FALLBACK - SMS to ${phoneNumber}: ${message}`);
-    return { success: true };
+    // Log error but allow app flow to continue
+    console.error('SMS sending error, falling back to console log:', error);
+    console.log(`FALLBACK SMS → ${phoneNumber}: ${message}`);
+    return { success: true, fallback: true };
   }
 }
 
@@ -81,9 +82,10 @@ export async function sendOTP(phoneNumber) {
     expiresAt,
   });
   
-  // Send SMS
+  // Send SMS to international format (digits only)
   const message = `Your LedgerLite verification code is: ${code}. Valid for 10 minutes.`;
-  await sendSMS(phoneNumber, message);
+  const intlPhone = toInternationalPhone(phoneNumber);
+  await sendSMS(intlPhone, message);
   
   return { success: true, otp: code };
 }

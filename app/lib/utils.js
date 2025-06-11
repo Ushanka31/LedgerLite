@@ -223,4 +223,23 @@ export const DEFAULT_STAFF_PERMISSIONS = [
   PERMISSIONS.CREATE_INVOICE,
   PERMISSIONS.CREATE_EXPENSE,
   PERMISSIONS.VIEW_REPORTS,
-]; 
+];
+
+// Convert Nigerian phone number to international 234 format (digits only, no plus sign)
+export function toInternationalPhone(phone) {
+  if (!phone) return '';
+  // Remove non-digits
+  let digits = phone.replace(/\D/g, '');
+
+  // If number starts with 0 and has 11 digits (e.g., 0703…), strip leading 0
+  if (digits.length === 11 && digits.startsWith('0')) {
+    digits = digits.slice(1); // 703…
+  }
+
+  // If it already starts with country code 234, keep as is
+  if (!digits.startsWith('234')) {
+    digits = `234${digits}`;
+  }
+
+  return digits;
+} 
