@@ -4,17 +4,17 @@ import { headers } from 'next/headers';
 
 export async function POST(request) {
   try {
-    const { phoneNumber, code, name, email } = await request.json();
+    const { phoneNumber, code, pinId, name, email } = await request.json();
 
-    if (!phoneNumber || !code) {
+    if (!phoneNumber || !pinId || !code) {
       return NextResponse.json(
-        { error: 'Phone number and code are required' },
+        { error: 'Phone number, pinId and code are required' },
         { status: 400 }
       );
     }
 
-    // Verify OTP
-    const verifyResult = await verifyOTP(phoneNumber, code);
+    // Verify OTP via Termii
+    const verifyResult = await verifyOTP(code, pinId);
 
     if (!verifyResult.success) {
       return NextResponse.json(

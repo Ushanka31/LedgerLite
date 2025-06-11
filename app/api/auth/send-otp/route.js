@@ -40,7 +40,7 @@ export async function POST(request) {
       .where(eq(users.phoneNumber, phoneNumber))
       .limit(1);
 
-    // Send OTP
+    // Send OTP via Termii (returns pinId)
     const result = await sendOTP(phoneNumber);
 
     if (!result.success) {
@@ -53,9 +53,8 @@ export async function POST(request) {
     return NextResponse.json({ 
       success: true,
       message: 'OTP sent successfully',
-      isNewUser: !existingUser, // Tell frontend if this is a new user
-      // Include OTP in development mode for easy testing
-      ...(process.env.NODE_ENV === 'development' && { otp: result.otp })
+      pinId: result.pinId,
+      isNewUser: !existingUser,
     });
   } catch (error) {
     console.error('Send OTP error:', error);

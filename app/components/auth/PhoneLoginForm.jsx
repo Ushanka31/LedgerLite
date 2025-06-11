@@ -29,6 +29,7 @@ export default function PhoneLoginForm() {
   const [step, setStep] = useState('phone'); // 'phone', 'details', or 'otp'
   const [phoneNumber, setPhoneNumber] = useState('');
   const [isNewUser, setIsNewUser] = useState(false);
+  const [pinId, setPinId] = useState('');
   const [userDetails, setUserDetails] = useState({ name: '', email: '' });
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
@@ -88,6 +89,7 @@ export default function PhoneLoginForm() {
 
       setPhoneNumber(data.phoneNumber);
       setIsNewUser(result.isNewUser);
+      setPinId(result.pinId);
       
       // If you wish to log OTP in dev, uncomment next line
       // console.log('OTP:', result.otp);
@@ -119,7 +121,8 @@ export default function PhoneLoginForm() {
     try {
       const payload = { 
         phoneNumber, 
-        code: data.code 
+        code: data.code,
+        pinId,
       };
 
       // Include user details if this is a new user
@@ -172,7 +175,7 @@ export default function PhoneLoginForm() {
         throw new Error(result.error || 'Failed to send OTP');
       }
 
-      // console.log('OTP:', result.otp);
+      setPinId(result.pinId);
 
       startCountdown();
     } catch (err) {
@@ -322,7 +325,12 @@ export default function PhoneLoginForm() {
           <div className="text-center">
             <button
               type="button"
-              onClick={() => setStep('phone')}
+              onClick={() => {
+                setStep('phone');
+                setPinId('');
+                setError('');
+                otpForm.reset();
+              }}
               className="text-medium hover:text-dark transition-colors duration-300 font-medium"
             >
               ← Back to phone number
@@ -406,6 +414,7 @@ export default function PhoneLoginForm() {
               type="button"
               onClick={() => {
                 setStep('phone');
+                setPinId('');
                 setError('');
                 otpForm.reset();
               }}

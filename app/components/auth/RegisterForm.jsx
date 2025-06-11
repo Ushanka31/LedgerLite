@@ -30,6 +30,7 @@ export default function RegisterForm() {
 
   const [phoneNumber, setPhoneNumber] = useState('');
   const [userDetails, setUserDetails] = useState({ name: '', email: '' });
+  const [pinId, setPinId] = useState('');
 
   const detailsForm = useForm({
     resolver: zodResolver(detailsSchema),
@@ -79,6 +80,7 @@ export default function RegisterForm() {
 
       setPhoneNumber(data.phoneNumber);
       setUserDetails({ name: data.name, email: data.email });
+      setPinId(result.pinId);
 
       // console.log('OTP:', result.otp);
 
@@ -101,6 +103,7 @@ export default function RegisterForm() {
         code: data.code,
         name: userDetails.name,
         email: userDetails.email,
+        pinId,
       };
 
       const response = await fetch('/api/auth/verify-otp', {
@@ -146,6 +149,8 @@ export default function RegisterForm() {
       if (!response.ok) {
         throw new Error(result.error || 'Failed to send OTP');
       }
+
+      setPinId(result.pinId);
 
       // console.log('OTP:', result.otp);
 
@@ -321,6 +326,7 @@ export default function RegisterForm() {
                 setStep('details');
                 setError('');
                 otpForm.reset();
+                setPinId('');
               }}
               className="text-light hover:text-medium transition-colors duration-300 text-sm"
             >
