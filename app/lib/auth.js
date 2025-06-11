@@ -76,7 +76,7 @@ export async function sendOTP(phoneNumber) {
     throw new Error('TERMII_API_KEY not set in environment');
   }
 
-  const termiiUrl = 'https://api.ng.termii.com/api/sms/otp/send';
+  const termiiUrl = 'https://v3.api.termii.com/api/sms/otp/send';
 
   const intlPhone = toInternationalPhone(phoneNumber); // 2347...
 
@@ -84,15 +84,21 @@ export async function sendOTP(phoneNumber) {
     api_key: apiKey,
     message_type: 'NUMERIC',
     to: intlPhone,
-    from: process.env.TERMII_SENDER_ID || 'N-Alert',
+    from: 'LedgerLite',
     channel: 'dnd',
-    pin_attempts: 3,
+    pin_attempts: 10,
     pin_time_to_live: 5,
     pin_length: 6,
-    pin_placeholder: '< 123456 >',
-    message_text: 'Your LedgerLite verification code is < 123456 >',
+    pin_placeholder: '< 1234 >',
+    message_text: 'Your LedgerLite verification code is < 1234 >',
     pin_type: 'NUMERIC',
   };
+
+  console.log('Sending OTP to Termii:', {
+    url: termiiUrl,
+    to: intlPhone,
+    from: payload.from,
+  });
 
   try {
     const response = await fetch(termiiUrl, {
@@ -102,6 +108,8 @@ export async function sendOTP(phoneNumber) {
     });
 
     const result = await response.json();
+
+    console.log('Termii OTP Response:', result);
 
     if (!response.ok) {
       console.error('Termii OTP send error:', result);
@@ -122,13 +130,18 @@ export async function verifyOTP(code, pinId) {
     throw new Error('TERMII_API_KEY not set in environment');
   }
 
-  const termiiUrl = 'https://api.ng.termii.com/api/sms/otp/verify';
+  const termiiUrl = 'https://v3.api.termii.com/api/sms/otp/verify';
 
   const payload = {
     api_key: apiKey,
     pin_id: pinId,
     pin: code,
   };
+
+  console.log('Verifying OTP with Termii:', {
+    url: termiiUrl,
+    pinId: pinId,
+  });
 
   try {
     const response = await fetch(termiiUrl, {
@@ -138,6 +151,8 @@ export async function verifyOTP(code, pinId) {
     });
 
     const result = await response.json();
+
+    console.log('Termii Verify Response:', result);
 
     if (!response.ok) {
       console.error('Termii OTP verify error:', result);
