@@ -1,8 +1,8 @@
 import { cookies } from 'next/headers';
 import { db } from './db';
-import { users, authSessions, otpCodes } from './db/schema';
+import { users, authSessions } from './db/schema';
 import { eq, and, gt, lt } from 'drizzle-orm';
-import { generateOTP, validatePhoneNumber, toInternationalPhone } from './utils';
+import { validatePhoneNumber, toInternationalPhone } from './utils';
 import crypto from 'crypto';
 
 const SESSION_COOKIE_NAME = 'ledgerlite_session';
@@ -64,70 +64,96 @@ export async function sendSMS(phoneNumber, message) {
   }
 }
 
-// Send OTP
+// Send OTP via Termii OTP endpoint (Termii generates the code)
 export async function sendOTP(phoneNumber) {
-  // Validate phone number
+  // Validate phone number (basic sanity)
   if (!validatePhoneNumber(phoneNumber)) {
     throw new Error('Invalid phone number format');
   }
-  
-  // Generate OTP
-  const code = generateOTP();
-  const expiresAt = new Date(Date.now() + 10 * 60 * 1000); // 10 minutes
-  
-  // Save OTP to database
-  await db.insert(otpCodes).values({
-    phoneNumber,
-    code,
-    expiresAt,
-  });
-  
-  // Send SMS to international format (digits only)
-  const message = `Your LedgerLite verification code is: ${code}. Valid for 10 minutes.`;
-  const intlPhone = toInternationalPhone(phoneNumber);
-  await sendSMS(intlPhone, message);
-  
-  return { success: true, otp: code };
+
+  const apiKey = process.env.TERMII_API_KEY;
+  if (!apiKey) {
+    throw new Error('TERMII_API_KEY not set in environment');
+  }
+
+  const termiiUrl = 'https://api.ng.termii.com/api/sms/otp/send';
+
+  const intlPhone = toInternationalPhone(phoneNumber); // 2347...
+
+  const payload = {
+    api_key: apiKey,
+    message_type: 'NUMERIC',
+    to: intlPhone,
+    from: process.env.TERMII_SENDER_ID || 'N-Alert',
+    channel: 'dnd',
+    pin_attempts: 3,
+    pin_time_to_live: 5,
+    pin_length: 6,
+    pin_placeholder: '< 123456 >',
+    message_text: 'Your LedgerLite verification code is < 123456 >',
+    pin_type: 'NUMERIC',
+  };
+
+  try {
+    const response = await fetch(termiiUrl, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(payload),
+    });
+
+    const result = await response.json();
+
+    if (!response.ok) {
+      console.error('Termii OTP send error:', result);
+      return { success: false, error: result.message || 'Failed to send OTP' };
+    }
+
+    return { success: true, pinId: result.pinId };
+  } catch (err) {
+    console.error('Termii OTP send exception:', err);
+    return { success: false, error: err.message };
+  }
 }
 
-// Verify OTP
-export async function verifyOTP(phoneNumber, code) {
-  // Get valid OTP
-  const [otp] = await db
-    .select()
-    .from(otpCodes)
-    .where(
-      and(
-        eq(otpCodes.phoneNumber, phoneNumber),
-        eq(otpCodes.code, code),
-        gt(otpCodes.expiresAt, new Date()),
-        eq(otpCodes.attempts, 0) // Ensure not already used
-      )
-    )
-    .limit(1);
-  
-  if (!otp) {
-    // Increment attempts for this phone number
-    await db
-      .update(otpCodes)
-      .set({ attempts: 1 })
-      .where(
-        and(
-          eq(otpCodes.phoneNumber, phoneNumber),
-          gt(otpCodes.expiresAt, new Date())
-        )
-      );
-    
-    return { success: false, error: 'Invalid or expired code' };
+// Verify OTP via Termii verify endpoint
+export async function verifyOTP(code, pinId) {
+  const apiKey = process.env.TERMII_API_KEY;
+  if (!apiKey) {
+    throw new Error('TERMII_API_KEY not set in environment');
   }
-  
-  // Mark OTP as used
-  await db
-    .update(otpCodes)
-    .set({ attempts: 1 })
-    .where(eq(otpCodes.id, otp.id));
-  
-  return { success: true };
+
+  const termiiUrl = 'https://api.ng.termii.com/api/sms/otp/verify';
+
+  const payload = {
+    api_key: apiKey,
+    pin_id: pinId,
+    pin: code,
+  };
+
+  try {
+    const response = await fetch(termiiUrl, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(payload),
+    });
+
+    const result = await response.json();
+
+    if (!response.ok) {
+      console.error('Termii OTP verify error:', result);
+      return { success: false, error: result.message || 'OTP verification failed' };
+    }
+
+    // Termii returns { verified: true/false } etc.
+    if (result.verified === true || result.verification_status === 'VERIFIED' || result.smsStatus === 'Message Sent') {
+      return { success: true };
+    }
+
+    return { success: false, error: 'Invalid or expired code' };
+  } catch (err) {
+    console.error('Termii OTP verify exception:', err);
+    return { success: false, error: err.message };
+  }
 }
 
 // Login or register user
@@ -253,8 +279,4 @@ export async function cleanupSessions() {
   await db
     .delete(authSessions)
     .where(lt(authSessions.expiresAt, new Date()));
-  
-  await db
-    .delete(otpCodes)
-    .where(lt(otpCodes.expiresAt, new Date()));
 } 
