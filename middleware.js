@@ -7,6 +7,7 @@ export function middleware(request) {
   const publicRoutes = [
     '/',
     '/auth/login',
+    '/auth/register',
     '/api/auth/send-otp',
     '/api/auth/verify-otp',
     '/api/webhooks',

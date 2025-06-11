@@ -356,6 +356,7 @@ export async function GET(request) {
       
       let transactionType = 'other';
       let amount = 0;
+      let vendorName = null;
       
       if (revenueLines.length > 0) {
         // This is a sale (credit to revenue)
@@ -383,6 +384,10 @@ export async function GET(request) {
         const categoryMatch = entry.narration.match(/\[([^\]]+)\]/);
         extractedCategory = categoryMatch ? categoryMatch[1] : 'General';
         
+        // Extract vendor name
+        const vendorMatch = entry.narration.match(/^Expense to ([^:]+):/);
+        vendorName = vendorMatch ? vendorMatch[1] : null;
+        
         // Clean description by removing vendor prefix and category suffix
         cleanDescription = entry.narration
           .replace(/^Expense to [^:]+:\s*/, '') // Remove "Expense to vendor: " prefix
@@ -397,6 +402,7 @@ export async function GET(request) {
         id: entry.id,
         amount,
         description: cleanDescription,
+        vendor: vendorName,
         date: entry.entryDate instanceof Date ? entry.entryDate.toISOString() : new Date(entry.entryDate).toISOString(),
         createdAt: entry.createdAt instanceof Date ? entry.createdAt.toISOString() : new Date(entry.createdAt).toISOString(),
         type: transactionType,

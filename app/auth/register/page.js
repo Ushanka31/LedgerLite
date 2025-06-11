@@ -1,17 +1,17 @@
-import PhoneLoginForm from '@/app/components/auth/PhoneLoginForm';
+import RegisterForm from '@/app/components/auth/RegisterForm';
 import LogoutButton from '@/app/components/auth/LogoutButton';
 
 export const metadata = {
-  title: 'Login - LedgerLite',
-  description: 'Login to your LedgerLite account',
+  title: 'Register - LedgerLite',
+  description: 'Create a new LedgerLite account',
 };
 
-export default function LoginPage() {
+export default function RegisterPage() {
   return (
     <div className="min-h-screen gradient-bg flex flex-col justify-center py-12 px-4 sm:px-6 lg:px-8">
       {/* Logout button for existing sessions */}
       <LogoutButton />
-      
+
       {/* Background decoration */}
       <div className="absolute inset-0 overflow-hidden">
         <div className="absolute -top-40 -right-40 w-80 h-80 bg-white/20 rounded-full blur-3xl"></div>
@@ -27,18 +27,18 @@ export default function LoginPage() {
               LedgerLite<span className="text-xl align-super">™</span>
             </h1>
           </div>
-          <h1 className="text-4xl font-bold text-dark mb-3">Welcome</h1>
-          <p className="text-medium text-lg">Sign in or Register with LedgerLite</p>
+          <h1 className="text-4xl font-bold text-dark mb-3">Create Account</h1>
+          <p className="text-medium text-lg">Register with LedgerLite</p>
         </div>
       </div>
 
-      {/* Login Form */}
+      {/* Register Form */}
       <div className="relative z-10 sm:mx-auto sm:w-full sm:max-w-md">
-        <PhoneLoginForm />
+        <RegisterForm />
         <div className="mt-6 text-center">
           <p className="text-sm text-light">
-            Don&apos;t have an account?{' '}
-            <a href="/auth/register" className="text-medium hover:text-dark underline underline-offset-4">Register</a>
+            Already have an account?{' '}
+            <a href="/auth/login" className="text-medium hover:text-dark underline underline-offset-4">Login</a>
           </p>
         </div>
       </div>

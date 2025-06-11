@@ -15,6 +15,9 @@ const expenseSchema = z.object({
 
 // Business expense categories
 const EXPENSE_CATEGORIES = [
+  { value: 'Salary Payment', label: 'Salary Payment' },
+  { value: 'Contractor Payment', label: 'Contractor Payment' },
+  { value: 'Employee Benefits', label: 'Employee Benefits' },
   { value: 'Office Supplies', label: 'Office Supplies' },
   { value: 'Travel & Transportation', label: 'Travel & Transportation' },
   { value: 'Utilities', label: 'Utilities (Electricity, Internet, Water)' },
@@ -39,7 +42,7 @@ export default function AddExpenseModal({ isOpen, onClose, onSuccess }) {
       description: '',
       vendor: '',
       date: new Date().toISOString().split('T')[0], // Today's date
-      category: 'Office Supplies', // Default to first category
+      category: 'Salary Payment', // Default to first category
     },
   });
 

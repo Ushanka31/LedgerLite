@@ -43,6 +43,12 @@ export const personalExpenseCategories = [
   { id: 'hobbies', name: 'Hobbies', icon: '🎨', color: 'indigo', group: 'Lifestyle' },
   { id: 'fitness', name: 'Fitness/Gym', icon: '💪', color: 'indigo', group: 'Lifestyle' },
   
+  // Business Operations
+  { id: 'salary_payment', name: 'Salary Payment', icon: '💰', color: 'purple', group: 'Business Operations' },
+  { id: 'contractor_payment', name: 'Contractor Payment', icon: '🤝', color: 'purple', group: 'Business Operations' },
+  { id: 'office_supplies', name: 'Office Supplies', icon: '📎', color: 'purple', group: 'Business Operations' },
+  { id: 'business_services', name: 'Business Services', icon: '🔧', color: 'purple', group: 'Business Operations' },
+  
   // Financial
   { id: 'insurance', name: 'Insurance', icon: '🛡️', color: 'gray', group: 'Financial' },
   { id: 'loans', name: 'Loan Payments', icon: '🏦', color: 'gray', group: 'Financial' },
